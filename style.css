@@ -47,3 +47,17 @@ body.embedded .end-screen,body.native.launch-mode.closing .end-screen{visibility
 .wallpaper-setting{display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:20px;font-size:12px;color:#c7aebb}.wallpaper-setting input{grid-column:1/-1;width:100%;accent-color:#d7a4c0}.wallpaper-setting small{grid-column:1/-1;color:#a18a99;font-size:10px;line-height:1.6}.wallpaper-setting output{font:11px Menlo,monospace}
 .text-settings{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px;margin-top:20px}.text-settings label{display:flex;flex-direction:column;gap:8px;min-width:0;font-size:12px;color:#c7aebb}.text-settings input{width:100%;min-width:0;padding:10px 11px;border:1px solid #63465c;border-radius:6px;background:#241b26;color:#f7eef2;font:inherit;font-size:13px}.text-settings small{font-size:10px;color:#a18a99}.text-wide{grid-column:1/-1}.boot-title{overflow-wrap:anywhere}.boot-title.long-title{font-size:clamp(18px,2.5vw,30px);letter-spacing:.12em;padding-left:.12em}.boot-caption{white-space:normal;overflow-wrap:anywhere;line-height:1.7}.subtitle{overflow-wrap:anywhere;line-height:1.5}
 @media(max-width:480px){.text-settings{grid-template-columns:1fr}#settings-dialog{padding:24px 18px}.settings-actions{gap:8px}.settings-actions button{padding:10px 8px}}
+
+/* Naruto theme: show the actual character action across the full widescreen frame. */
+:root[data-startup-theme=aurora]{color:#e8fff4}
+body.motion-avatar .avatar-frame{inset:26% 7%;border-color:#d89a3c;box-shadow:0 0 24px #f7ab3620}
+body.motion-avatar .avatar-frame:before,body.motion-avatar .avatar-frame:after{border-color:#edb254}
+body.motion-avatar .avatar{image-rendering:auto}
+:root[data-startup-theme=aurora] .intro{background:radial-gradient(ellipse,#17352c,#111c1c 70%);color:#b8efd5}
+:root[data-startup-theme=aurora] .pulse b{background:#96efc9;box-shadow:0 0 36px #96efc955}
+:root[data-startup-theme=aurora] .preview-heading i{background:#96efc9;box-shadow:0 0 10px #96efc944}
+:root[data-startup-theme=aurora] .preview-heading>span:first-child{color:#9edbbf}
+:root[data-startup-theme=aurora] .end-screen{background:radial-gradient(ellipse at 50% 45%,#172d27,#18171a 70%)}
+:root[data-startup-theme=aurora] .end-star,:root[data-startup-theme=aurora] .eyebrow{color:#9edbbf}
+:root[data-startup-theme=aurora] #timeline,:root[data-startup-theme=aurora] #wallpaper-strength{accent-color:#9ddfbc}
+:root[data-startup-theme=aurora] .settings-actions #preview-images{background:#9ddfbc;color:#21180d}

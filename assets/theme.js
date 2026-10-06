@@ -1,0 +1,1 @@
+window.AEMEATH_THEME={id:'aurora-robot-v1',palette:'aurora',name:'极光 · 动态开场',avatar:'assets/avatar-motion.gif',avatarPoster:'assets/avatar.jpg',artwork:'assets/artwork.jpg',introTitle:'准备开始',introCaption:'YOUR SPACE / YOUR STARTUP',artworkSubtitle:'换成你喜欢的画面，开始工作。'};

@@ -1,0 +1,30 @@
+name: Package Windows download
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify runtime checks
+        run: node --test tools/extension.test.mjs tools/windows.test.mjs
+      - name: Package
+        shell: pwsh
+        run: ./tools/package-win11.ps1
+      - name: Publish tagged release
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create $env:GITHUB_REF_NAME .build/dist/codex-background-renderer-win11.zip --title "Codex 背景渲染 $env:GITHUB_REF_NAME" --notes-file docs/RELEASE.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: codex-background-renderer-win11
+          path: .build/dist/codex-background-renderer-win11.zip

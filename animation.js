@@ -5,7 +5,9 @@
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const native = !window.AEMEATH_EXTERNAL && Boolean(window.webkit?.messageHandlers?.launcher);
   const embedded = window.parent!==window && (window.AEMEATH_EXTERNAL || new URLSearchParams(location.search).has('embedded'));
-  const assets=window.AEMEATH_ASSETS||{artwork:'assets/artwork.jpg',avatar:'assets/avatar.jpg'};
+  const theme=window.AEMEATH_THEME||{};
+  const assets=window.AEMEATH_ASSETS||{artwork:theme.artwork||'assets/artwork.jpg',avatar:theme.avatar||'assets/avatar.jpg',avatarPoster:theme.avatarPoster||'assets/avatar.jpg'};
+  if(theme.id)document.documentElement.dataset.startupTheme=theme.palette||'aurora';
   if(embedded)document.body.classList.add('embedded');
   const root = $('.window'), art = $('.artwork'), scene = $('.scene');
   const hud = $('.hud'), intro = $('.intro'), sweep = $('.light-sweep');
@@ -13,6 +15,17 @@
   slider.max=String(duration/1000);
   let playing = false, elapsed = 0, origin = 0, frame = 0, lastUI = -Infinity;
   let completed = false, hiddenPause = false, mode = 'preview', loaded = false, revealed = false;
+  let avatarSource='',avatarPoster='',avatarMoving=false,avatarFrozen=false;
+  function freezeAvatar(){
+    if(!avatarMoving||avatarFrozen)return;
+    const image=$('.avatar');
+    try{
+      const still=document.createElement('canvas');still.width=image.naturalWidth;still.height=image.naturalHeight;
+      still.getContext('2d').drawImage(image,0,0);image.src=still.toDataURL('image/png');
+    }catch{image.src=avatarPoster;}
+    avatarFrozen=true;
+  }
+  function resumeAvatar(){if(avatarFrozen){$('.avatar').src=avatarSource;avatarFrozen=false;}}
   const clamp = n => Math.max(0, Math.min(1, n));
   const smooth = n => { const t = clamp(n); return t*t*(3-2*t); };
   const send = (action, details={}) => {
@@ -97,7 +110,9 @@
       ink.beginPath();ink.moveTo(cx+Math.sin(a)*r0,cy-Math.cos(a)*r0);ink.lineTo(cx+Math.sin(a)*r1,cy-Math.cos(a)*r1);ink.stroke();
     }
     ink.globalAlpha=1;ink.strokeRect(border.x,border.y,border.w,border.h);
-    ink.drawImage($('.avatar'),avatar.x,avatar.y,avatar.w,avatar.h);
+    const avatarImage=$('.avatar'),fit=Math.max(avatar.w/avatarImage.naturalWidth,avatar.h/avatarImage.naturalHeight);
+    const sourceWidth=avatar.w/fit,sourceHeight=avatar.h/fit;
+    ink.drawImage(avatarImage,(avatarImage.naturalWidth-sourceWidth)/2,(avatarImage.naturalHeight-sourceHeight)/2,sourceWidth,sourceHeight,avatar.x,avatar.y,avatar.w,avatar.h);
     // Neutralize the bitmap once, not with an expensive live blur/filter on every frame.
     ink.globalCompositeOperation='saturation';ink.fillStyle='#999';
     ink.fillRect(avatar.x,avatar.y,avatar.w,avatar.h);ink.globalCompositeOperation='source-over';
@@ -246,7 +261,7 @@
     }
   }
   function updateButton() { pause.textContent=playing?'暂停':'继续'; root.dataset.playing=String(playing); }
-  function stop() { playing=false; cancelAnimationFrame(frame); frame=0; updateButton(); }
+  function stop() { playing=false; cancelAnimationFrame(frame); frame=0; freezeAvatar(); updateButton(); }
   function finish(skipped=false) {
     stop(); elapsed=duration; render(elapsed); completed=true;
     root.classList.add('finished'); root.dataset.completed='true';
@@ -269,6 +284,7 @@
   }
   function play() {
     if(!loaded)return;
+    resumeAvatar();
     if(elapsed>=duration)elapsed=0;
     warmIdentityTexture();
     completed=false; root.classList.remove('finished'); root.dataset.completed='false';
@@ -308,9 +324,9 @@
   let savedImages={},pendingImages={},busy=false;
   const settings=$('#settings-dialog'),status=$('#settings-status');
   const textFields=[
-    {key:'introTitle',input:'#intro-title',target:'.boot-title',fallback:'飞行雪绒',limit:16},
-    {key:'introCaption',input:'#intro-caption',target:'.boot-caption',fallback:'CODEX INITIALIZE / TYPE-0',limit:48},
-    {key:'artworkSubtitle',input:'#artwork-subtitle',target:'#subtitle',fallback:'幽灵来到…你身边～',limit:60}
+    {key:'introTitle',input:'#intro-title',target:'.boot-title',fallback:theme.introTitle||'飞行雪绒',limit:16},
+    {key:'introCaption',input:'#intro-caption',target:'.boot-caption',fallback:theme.introCaption||'CODEX INITIALIZE / TYPE-0',limit:48},
+    {key:'artworkSubtitle',input:'#artwork-subtitle',target:'#subtitle',fallback:theme.artworkSubtitle||'幽灵来到…你身边～',limit:60}
   ];
   const textValue=(images,field)=>typeof images[field.key]==='string'?images[field.key].slice(0,field.limit):field.fallback;
   function thumbnails(){
@@ -332,7 +348,12 @@
   }
   async function applyImages(images){
     releaseIdentityTexture();
-    art.src=images.artwork||assets.artwork;$('.avatar').src=images.avatar||assets.avatar;
+    avatarPoster=images.avatarPoster||assets.avatarPoster||assets.avatar;
+    avatarSource=reduced?avatarPoster:(images.avatar||assets.avatar);
+    avatarMoving=!reduced&&(/\.gif(?:[?#]|$)|^data:image\/(gif|webp);/i.test(avatarSource));
+    avatarFrozen=false;
+    document.body.classList.toggle('motion-avatar',avatarMoving);
+    art.src=images.artwork||assets.artwork;$('.avatar').src=avatarSource;
     await Promise.all([art,$('.avatar')].map(img=>img.decode()));
     paths=preparePaths(images.contours||window.CONTOUR_PATHS||[]);fragments=prepareFragments(paths);lastTrace=-1;
     if(!paths.length)throw new Error('图片轮廓数据缺失');
@@ -366,7 +387,7 @@
     }catch(error){status.textContent=error.message;}
     finally{setBusy(false);event.target.value='';}
   });
-  $('#reset-images').addEventListener('click',()=>{pendingImages={};thumbnails();status.textContent='已选用默认图片、文字和背景显现程度，点击「保存并预览」应用。';});
+  $('#reset-images').addEventListener('click',()=>{pendingImages=theme.id?{themeId:theme.id}:{};thumbnails();status.textContent='已选用默认图片、文字和背景显现程度，点击「保存并预览」应用。';});
   $('#preview-images').addEventListener('click',async()=>{
     setBusy(true);status.textContent='正在保存…';
     try{
@@ -374,7 +395,7 @@
     }catch(error){await applyImages(savedImages);status.textContent='保存失败，原设置已保留：'+error.message;}
     finally{setBusy(false);}
   });
-  window.imageSettings.load().catch(()=>({})).then(async images=>{
+  (theme.id?window.imageSettings.loadForTheme(theme.id):window.imageSettings.load()).catch(()=>({})).then(async images=>{
     savedImages=images;
     try{await applyImages(images);}catch{savedImages={};await applyImages({});}
     ready();

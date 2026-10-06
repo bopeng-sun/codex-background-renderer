@@ -54,17 +54,27 @@
   }
   async function importImage(file,kind){
     if(file.size>30*1024*1024)throw new Error('请选择小于 30 MB 的图片。');
-    if(!['image/png','image/jpeg','image/webp'].includes(file.type))throw new Error('请选择 PNG、JPEG 或 WebP 图片。');
+    if(!['image/png','image/jpeg','image/webp',...(kind==='avatar'?['image/gif']:[])].includes(file.type))throw new Error(kind==='avatar'?'请选择 PNG、JPEG、WebP 或 GIF 头像。':'请选择 PNG、JPEG 或 WebP 背景。');
     const url=URL.createObjectURL(file),img=new Image();
     try{
       img.src=url;await img.decode();
-      const canvas=document.createElement('canvas');canvas.width=kind==='avatar'?512:1536;canvas.height=kind==='avatar'?512:1024;
+      // Keep real source detail up to a 3240 x 2160 background; never enlarge a small source.
+      // The tracing canvas remains small, so import cost does not grow with 4K pixels.
+      const height=kind==='avatar'?512:Math.max(2,Math.floor(Math.min(2160,img.naturalHeight,img.naturalWidth/1.5)/2)*2);
+      const canvas=document.createElement('canvas');canvas.width=kind==='avatar'?512:height*1.5;canvas.height=height;
       const ctx=canvas.getContext('2d');ctx.fillStyle='#08060d';ctx.fillRect(0,0,canvas.width,canvas.height);
       const scale=Math.max(canvas.width/img.naturalWidth,canvas.height/img.naturalHeight);
       const w=img.naturalWidth*scale,h=img.naturalHeight*scale;
       ctx.drawImage(img,(canvas.width-w)/2,(canvas.height-h)/2,w,h);
-      const image=canvas.toDataURL('image/png');
-      if(kind==='avatar')return {avatar:image};
+      const image=canvas.toDataURL(kind==='avatar'?'image/png':'image/jpeg',.95);
+      if(kind==='avatar'){
+        if(file.type==='image/gif'||file.type==='image/webp'){
+          // Canvas export captures a single frame. Preserve the original animation bytes instead.
+          const original=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(reader.error);reader.readAsDataURL(file);});
+          return {avatar:original,avatarPoster:image};
+        }
+        return {avatar:image,avatarPoster:image};
+      }
       const small=document.createElement('canvas');small.width=768;small.height=512;
       const smallCtx=small.getContext('2d',{willReadFrequently:true});smallCtx.drawImage(canvas,0,0,768,512);
       const contours=vectorize(smallCtx.getImageData(0,0,768,512).data,768,512);
@@ -73,5 +83,26 @@
     }catch(error){throw new Error(error.message||'图片无法读取，请换一张图片。');}
     finally{URL.revokeObjectURL(url);}
   }
-  scope.imageSettings={load:()=>database('read'),save:images=>database('write',images),importImage};
+  async function loadForTheme(themeId){
+    return new Promise((resolve,reject)=>{
+      const open=indexedDB.open('aemeath-startup-images',1);
+      open.onupgradeneeded=()=>open.result.createObjectStore('settings');
+      open.onerror=()=>reject(open.error);
+      open.onsuccess=()=>{
+        const db=open.result,tx=db.transaction('settings','readwrite'),store=tx.objectStore('settings');
+        let selected={themeId};
+        const request=store.get('images');
+        request.onsuccess=()=>{
+          const previous=request.result||{};
+          if(previous.themeId===themeId){selected=previous;return;}
+          // The user requested a new default theme. Keep the old local settings as a backup.
+          if(Object.keys(previous).length)store.put(previous,'backup-before-'+themeId);
+          store.put(selected,'images');
+        };
+        tx.oncomplete=()=>{db.close();resolve(selected);};
+        tx.onerror=tx.onabort=()=>{db.close();reject(tx.error||new Error('主题切换失败'));};
+      };
+    });
+  }
+  scope.imageSettings={load:()=>database('read'),loadForTheme,save:images=>database('write',images),importImage};
 })(typeof window==='undefined'?{}:window);

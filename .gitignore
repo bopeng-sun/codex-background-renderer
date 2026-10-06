@@ -14,6 +14,7 @@ tools/extract-reference.swift
 *.mov
 *.log
 *.tmp
+*.lnk
 
 # Local credentials and editor state.
 .env

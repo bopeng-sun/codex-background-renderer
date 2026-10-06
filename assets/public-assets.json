@@ -1,0 +1,14 @@
+{
+  "theme": "aurora-robot-v1",
+  "provenance": "Original procedural artwork created for this project; no downloaded character images.",
+  "background": [
+    3240,
+    2160
+  ],
+  "avatar": [
+    640,
+    360
+  ],
+  "frames": 40,
+  "loopMs": 2400
+}
