@@ -14,7 +14,7 @@ jobs:
         with:
           node-version: '24'
       - name: Verify runtime checks
-        run: node --test tools/extension.test.mjs tools/windows.test.mjs
+        run: node --test tools/extension.test.mjs tools/windows.test.mjs tools/proxy.test.mjs
       - name: Package
         shell: pwsh
         run: ./tools/package-win11.ps1

@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('Preview', 'Wallpaper', 'Launch', 'Doctor', 'Serve')]
+    [ValidateSet('Preview', 'Wallpaper', 'Launch', 'Connect', 'Doctor', 'Serve')]
     [string]$Mode = 'Preview'
 )
 $ErrorActionPreference = 'Stop'

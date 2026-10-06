@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('Discover', 'Inspect', 'Listener', 'Activate')]
+    [ValidateSet('Discover', 'Inspect', 'Listener', 'Activate', 'Proxy')]
     [string]$Action,
     [string]$Executable,
     [int]$Port,
@@ -60,6 +60,9 @@ try {
             }
         }
         Write-Json @($listeners)
+    } elseif ($Action -eq 'Proxy') {
+        $settings = Get-ItemProperty -LiteralPath 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings' -ErrorAction SilentlyContinue
+        Write-Json @{ enabled = ($settings.ProxyEnable -eq 1); server = [string]$settings.ProxyServer }
     } elseif ($Action -eq 'Activate') {
         if ($AppId) {
             Start-Process -FilePath explorer.exe -ArgumentList ('shell:AppsFolder\' + $AppId) -WindowStyle Hidden

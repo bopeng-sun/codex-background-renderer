@@ -23,12 +23,15 @@
 | 预览动画-Win11.cmd | 独立窗口播放动画、换图、保存文字 |
 | 预览背景-Win11.cmd | 在明确标识的模拟界面体验背景 |
 | 检查环境-Win11.cmd | 检测 Node、Codex 安装与签名 |
+| 恢复连接-Win11.cmd | 沿用已启用的代理启动官方 Codex，方便排查云端重连 |
 | 创建快捷方式-Win11.cmd | 在当前目录生成自定义启动快捷方式 |
 | 启动Codex-Win11.cmd | 实验性外部接入官方 Codex |
 
 需要 Node.js 22+。无需 npm install、Python、Swift 或 Xcode；预览使用已有的 Edge/Chrome。
 
 **真实 Codex 接入为实验功能，实际官方页面接入尚未验证。** 首次使用前保存工作并完全退出 Codex，再运行启动入口。如果应用已经运行，启动器只激活现有窗口。网页预览不会直接修改已安装的应用。详情见 [Windows 使用说明](README-Win11.md)。
+
+新启动会将现有环境代理或 Windows 已开启的静态代理传给 Codex 的子进程，供支持 Node 环境代理的桌面版本使用。正在运行的应用需要完全退出后，重新从本项目入口打开才能加载设置；这不代表已经验证了带登录状态的实际云端连接。
 
 ## 公开默认素材
 
@@ -38,7 +41,7 @@
 
 ## 开发与部署
 
-运行 node --test tools/extension.test.mjs tools/windows.test.mjs 验证基础检查。
+运行 node --test tools/extension.test.mjs tools/windows.test.mjs tools/proxy.test.mjs 验证基础检查。
 
 运行 node tools/build-web.mjs，将静态网站构建到 .build/site。GitHub Pages 发布源设为 GitHub Actions，main 更新后自动部署；v* 版本标签自动构建并发布 Windows ZIP。静态页面使用相对资源地址。
 

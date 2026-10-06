@@ -10,7 +10,7 @@ $commandFiles | ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination
 $folderFiles = @{
  'assets' = @('avatar.jpg','avatar-motion.gif','artwork.jpg','contours.js','theme.js','public-assets.json')
  'extension' = @('renderer.mjs','payload.mjs','cdp.mjs','wallpaper.css','preview.html')
- 'windows' = @('start.ps1','platform.ps1','launcher.mjs','create-shortcut.ps1')
+ 'windows' = @('start.ps1','platform.ps1','launcher.mjs','create-shortcut.ps1','proxy.mjs')
  'tools' = @('extension-preview.mjs')
  'docs' = @('references.md','README-upstream.md')
 }

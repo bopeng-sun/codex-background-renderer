@@ -8,6 +8,7 @@ import {fileURLToPath} from 'node:url';
 import {setTimeout as delay} from 'node:timers/promises';
 import {buildInjection} from '../extension/payload.mjs';
 import {connect, localSocket, pageTarget} from '../extension/cdp.mjs';
+import {launchEnvironment} from './proxy.mjs';
 
 const exec = promisify(rawExec);
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -103,21 +104,26 @@ export async function injectUntilReady({port, executable, source, timeout = 4500
   throw new Error(lastError);
 }
 
-async function launch() {
+async function launch({appearance = true} = {}) {
   const info = await findInstallation();
   if (info.running.length) {
-    console.log('Codex 已在运行，本次只打开已有应用。保存工作并完全退出后，再双击此启动器才会播放动画。');
+    console.log('Codex 已在运行，本次只打开已有应用。新的代理和背景设置需要保存工作、完全退出后，再从此启动器打开才会生效。');
     await platform('Activate', {Executable: info.executable, AppId: info.appId || ''});
     return;
   }
-  const source = await buildInjection(root);
-  const port = await freePort();
-  console.log('正在启动 Codex，并尝试加载动画。Ctrl+Alt+B 打开图片设置。');
-  const child = spawn(info.executable, ['--remote-debugging-address=127.0.0.1', `--remote-debugging-port=${port}`], {
-    cwd: dirname(info.executable), detached: true, stdio: 'ignore', windowsHide: false
+  const source = appearance ? await buildInjection(root) : null;
+  const port = appearance ? await freePort() : null;
+  const proxy = await platform('Proxy').catch(() => ({}));
+  const environment = launchEnvironment(proxy, process.env);
+  if (environment.NODE_USE_ENV_PROXY === '1') console.log('已沿用现有代理，供 Codex 的云端连接使用。');
+  console.log(appearance ? '正在启动 Codex，并尝试加载动画。Ctrl+Alt+B 打开图片设置。' : '正在启动官方 Codex，并沿用现有网络配置。');
+  const args = appearance ? ['--remote-debugging-address=127.0.0.1', `--remote-debugging-port=${port}`] : [];
+  const child = spawn(info.executable, args, {
+    cwd: dirname(info.executable), detached: true, stdio: 'ignore', windowsHide: false, env: environment
   });
   await new Promise((fulfill, reject) => { child.once('spawn', fulfill); child.once('error', reject); });
   child.unref();
+  if (!appearance) return;
   try {
     await injectUntilReady({port, executable: info.executable, source});
     console.log('动画已开始，辅助进程退出；播放后保留静态背景。');
@@ -236,10 +242,14 @@ async function main() {
   if (mode === '--preview') return preview();
   if (mode === '--wallpaper') return preview(true);
   if (mode === '--launch') return launch();
+  if (mode === '--connect') return launch({appearance: false});
   if (mode === '--doctor') {
     const info = await findInstallation();
     const {running, ...installation} = info;
+    const proxy = await platform('Proxy').catch(() => ({}));
+    const environment = launchEnvironment(proxy, process.env);
     console.log(JSON.stringify({node: process.version, ...installation, running: running.length > 0,
+      network: {existingProxyAvailable: environment.NODE_USE_ENV_PROXY === '1', changesRequireFreshLaunch: true},
       integration: 'experimental; requires a fresh Codex launch; real app injection has not been verified'}, null, 2));
     return;
   }
